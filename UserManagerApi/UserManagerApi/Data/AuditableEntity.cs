@@ -7,4 +7,7 @@ public class AuditableEntity
     public Guid CreatedBy { get; set; }
     public DateTime? ModifiedAt { get; set; }
     public Guid? ModifiedBy { get; set; }
+
+    public User CreatedByUser { get; set; } = null!;
+    public User? ModifiedByUser { get; set; }
 }

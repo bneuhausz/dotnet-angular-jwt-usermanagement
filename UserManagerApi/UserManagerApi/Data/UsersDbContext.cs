@@ -21,8 +21,22 @@ public class UsersDbContext : DbContext
         foreach (var entityType in modelBuilder.Model.GetEntityTypes()
         .Where(e => typeof(AuditableEntity).IsAssignableFrom(e.ClrType)))
         {
-            modelBuilder.Entity(entityType.ClrType).Property(nameof(AuditableEntity.IsDeleted)).HasDefaultValue(false);
-            modelBuilder.Entity(entityType.ClrType).Property(nameof(AuditableEntity.CreatedAt)).HasDefaultValueSql("SYSDATETIME()");
+            var entity = modelBuilder.Entity(entityType.ClrType);
+
+            entity.Property(nameof(AuditableEntity.IsDeleted)).HasDefaultValue(false);
+            entity.Property(nameof(AuditableEntity.CreatedAt)).HasDefaultValueSql("SYSDATETIME()");
+
+            entity.HasOne(typeof(User), nameof(AuditableEntity.CreatedByUser))
+            .WithMany()
+            .HasForeignKey(nameof(AuditableEntity.CreatedBy))
+            .HasConstraintName($"FK_{entityType.GetTableName()}_CreatedBy")
+            .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(typeof(User), nameof(AuditableEntity.ModifiedByUser))
+                .WithMany()
+                .HasForeignKey(nameof(AuditableEntity.ModifiedBy))
+                .HasConstraintName($"FK_{entityType.GetTableName()}_ModifiedBy")
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
         modelBuilder.Entity<User>(entity =>
