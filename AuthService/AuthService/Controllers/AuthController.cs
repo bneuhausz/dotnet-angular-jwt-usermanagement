@@ -12,7 +12,7 @@ using System.Text.Json;
 namespace AuthService.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 public class AuthController : ControllerBase
 {
     private readonly AuthDbContext _db;
@@ -30,7 +30,7 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> Login(LoginDto dto)
     {
         var user = await _db.Users
-            .FirstOrDefaultAsync(u => u.UserName == dto.UserName && !u.IsDeleted);
+            .FirstOrDefaultAsync(u => u.Email == dto.Email && !u.IsDeleted);
 
         if (user == null || !_passwordVerificationService.VerifyPassword(user.PasswordHash, dto.Password))
             return Unauthorized();
