@@ -27,7 +27,10 @@ public class PermissionsController : ControllerBase
             {
                 Id = p.Id,
                 Name = p.Name,
+                Type = p.Type,
+                ParentPermissionId = p.ParentPermissionId
             })
+            .AsNoTracking()
             .ToListAsync();
 
         return Ok(permissions);

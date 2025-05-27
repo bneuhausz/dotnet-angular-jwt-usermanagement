@@ -45,7 +45,6 @@ public class RolesController : ControllerBase
             })
             .AsNoTracking()
             .ToListAsync();
-
         return Ok(userRoles);
     }
 
