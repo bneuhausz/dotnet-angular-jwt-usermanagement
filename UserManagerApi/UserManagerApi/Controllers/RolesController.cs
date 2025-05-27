@@ -48,4 +48,29 @@ public class RolesController : ControllerBase
 
         return Ok(userRoles);
     }
+
+    [HttpPut("{roleId:guid}/togglepermission/{permissionId:guid}")]
+    public async Task<IActionResult> TogglePermission(Guid roleId, Guid permissionId)
+    {
+        var rolePermission = await _db.RolePermissions
+            .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId);
+
+        if (rolePermission == null)
+        {
+            rolePermission = new RolePermission
+            {
+                RoleId = roleId,
+                PermissionId = permissionId,
+            };
+            _db.RolePermissions.Add(rolePermission);
+        }
+        else
+        {
+            rolePermission.IsDeleted = !rolePermission.IsDeleted;
+            _db.RolePermissions.Update(rolePermission);
+        }
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
 }
