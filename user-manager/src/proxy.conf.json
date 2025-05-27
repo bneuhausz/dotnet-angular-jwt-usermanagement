@@ -1,0 +1,12 @@
+{
+  "/auth": {
+    "target": "https://localhost:7008",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api": {
+    "target": "https://localhost:7255",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
