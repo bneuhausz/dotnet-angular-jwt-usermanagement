@@ -12,6 +12,16 @@ export const routes: Routes = [
     loadComponent: () => import('./home/home.component'),
   },
   {
+    path: 'roles',
+    canActivate: [isAuthenticatedGuard()],
+    loadComponent: () => import('./maintenance/roles/roles.component'),
+  },
+  {
+    path: 'users',
+    canActivate: [isAuthenticatedGuard()],
+    loadComponent: () => import('./maintenance/users/users.component'),
+  },
+  {
     path: '',
     redirectTo: 'home',
     pathMatch: 'full',

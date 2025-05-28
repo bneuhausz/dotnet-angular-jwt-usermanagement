@@ -12,9 +12,11 @@ import { MatIconModule } from '@angular/material/icon';
   imports: [MatToolbarModule, MatButtonModule, RouterLink, MatProgressSpinnerModule, MatIconModule],
   template: `
     <mat-toolbar id="app-header">
-      <button mat-icon-button (click)="sidenav().open()">
-        <mat-icon>menu</mat-icon>
-      </button>
+      @if (authService.isAuthenticated()) {
+        <button mat-icon-button (click)="sidenav().open()">
+          <mat-icon>menu</mat-icon>
+        </button>
+      }
       <a class="app-link" routerLink="/">User Manager</a>
       <span class="spacer"></span>
       @if (authService.user(); as user) {

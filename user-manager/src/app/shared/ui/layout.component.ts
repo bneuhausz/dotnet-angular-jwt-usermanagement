@@ -5,24 +5,22 @@ import { MatSidenavModule } from "@angular/material/sidenav";
 import { MatListModule } from "@angular/material/list";
 import { MatIconModule } from "@angular/material/icon";
 import { AuthService } from "../../auth/data-access/auth.service";
+import { DynamicMenuComponent } from "./dynamic-menu.component";
 
 @Component({
   selector: "app-layout",
   template: `
     <mat-sidenav-container fullscreen>
       <mat-sidenav #sidenav>
-        <mat-nav-list (click)="sidenav.close()">
-          <a mat-list-item routerLink="/">
+        <mat-nav-list>
+          <a mat-list-item routerLink="/" (click)="sidenav.close()">
             <mat-icon matListItemIcon>home</mat-icon>
             <span>Home</span>
           </a>
 
-          <!-- @if (authService.isAuthenticated() && authService.isUserManager()) {
-            <a mat-list-item routerLink="user-management">
-              <mat-icon matListItemIcon>person_add</mat-icon>
-              <span>User Management</span>
-            </a>
-          } -->
+          @if (authService.isAuthenticated()) {
+            <app-dynamic-menu [menus]="authService.user()!.menus" [sidenav]="sidenav" />
+          }
         </mat-nav-list>
       </mat-sidenav>
       <app-header [sidenav]="sidenav"></app-header>
@@ -36,7 +34,7 @@ import { AuthService } from "../../auth/data-access/auth.service";
       padding-top: 20px;
     }
   `],
-  imports: [HeaderComponent, RouterOutlet, MatSidenavModule, MatListModule, RouterLink, MatIconModule],
+  imports: [HeaderComponent, RouterOutlet, MatSidenavModule, MatListModule, RouterLink, MatIconModule, DynamicMenuComponent],
 })
 export class LayoutComponent {
   authService = inject(AuthService);
