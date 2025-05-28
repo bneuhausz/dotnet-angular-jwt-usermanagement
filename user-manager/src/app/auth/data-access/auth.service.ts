@@ -1,10 +1,11 @@
 import { computed, inject, Injectable, signal } from "@angular/core";
-import { User } from "../interfaces/user";
 import { HttpClient } from "@angular/common/http";
-import { LoginResponse } from "../interfaces/responses/login.response";
 import { Subject, switchMap, tap } from "rxjs";
-import { LoginRequest } from "../interfaces/requests/login.request";
 import { mapJwtToUser } from "../utils/jwt.utils";
+import { LoginRequest } from "../interfaces/requests/login.request";
+import { LoginResponse } from "../interfaces/responses/login.response";
+import { User } from "../interfaces/user";
+import { Router } from "@angular/router";
 
 type AuthState = {
   user?: User;
@@ -16,6 +17,7 @@ type AuthState = {
 })
 export class AuthService {
   readonly #http = inject(HttpClient);
+  readonly #router = inject(Router);
 
   readonly #state = signal<AuthState>({
     isLoading: false
@@ -26,6 +28,7 @@ export class AuthService {
   isLoading = computed(() => this.#state().isLoading);
 
   readonly login$ = new Subject<LoginRequest>();
+  readonly logout$ = new Subject<void>();
 
   readonly #login = this.login$
     .pipe(
@@ -36,14 +39,20 @@ export class AuthService {
         })
       ),
       tap((res) => {
-        console.log('Login successful:', res);
         const user = mapJwtToUser(res.token);
         console.log('Mapped user:', user);
         this.#state.update((state) => ({ ...state, isLoading: false, user }));
+        this.#router.navigate(['/']);
       })
     );
 
   constructor() {
     this.#login.subscribe();
+
+    this.logout$
+      .subscribe(() => {
+        this.#state.update((state) => ({ ...state, user: undefined }));
+        this.#router.navigate(['/login']);
+      });
   }
 }

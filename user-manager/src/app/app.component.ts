@@ -1,19 +1,20 @@
 import { Component, inject } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { AuthService } from './shared/data-access/auth.service';
+import { AuthService } from './auth/data-access/auth.service';
+import { LayoutComponent } from './shared/ui/layout.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [LayoutComponent],
   template: `
-    <h1>Welcome!</h1>
+    <!-- <h1>Welcome!</h1>
     <button (click)="authService.login$.next(user)">Login</button>
 
     <p>
       {{ authService.isAuthenticated() ? 'You are logged in' : 'You are not logged in' }}
     </p>
 
-    <router-outlet />
+    <router-outlet /> -->
+    <app-layout />
   `,
   styles: [],
 })
