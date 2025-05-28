@@ -19,6 +19,11 @@ public class AuthController : ControllerBase
     private readonly IConfiguration _config;
     private readonly PasswordVerificationService _passwordVerificationService;
 
+    private static readonly JsonSerializerOptions CamelCaseJsonSerializerOptions = new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
     public AuthController(AuthDbContext db, IConfiguration config, PasswordVerificationService passwordVerificationService)
     {
         _db = db;
@@ -46,7 +51,7 @@ public class AuthController : ControllerBase
             .ToListAsync();
 
         var permissionNames = permissions
-            .Where(p => !p.IsDeleted)
+            .Where(p => !p.IsDeleted && p.Type == "Action")
             .Select(p => p.Name)
             .Distinct()
             .ToList();
@@ -115,7 +120,7 @@ public class AuthController : ControllerBase
             new Claim("name", user.UserName),
             new Claim("email", user.Email),
             new Claim("permissions", JsonSerializer.Serialize(permissionNames)),
-            new Claim("menus", JsonSerializer.Serialize(menus)),
+            new Claim("menus", JsonSerializer.Serialize(menus, CamelCaseJsonSerializerOptions)),
         };
 
         return claims;

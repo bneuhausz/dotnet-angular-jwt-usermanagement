@@ -12,6 +12,7 @@ builder.Services.AddSingleton<IPasswordHasher<object>, PasswordHasher<object>>()
 builder.Services.AddSingleton<PasswordVerificationService>();
 
 builder.Services.AddControllers();
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
