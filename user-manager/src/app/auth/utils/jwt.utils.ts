@@ -1,5 +1,5 @@
 import { jwtDecode } from 'jwt-decode';
-import { User } from '../interfaces/user';
+import { LoggedInUser } from '../interfaces/logged-in-user';
 import { Menu } from '../interfaces/menu';
 
 interface JwtPayload {
@@ -11,7 +11,7 @@ interface JwtPayload {
   [key: string]: any;
 }
 
-export function mapJwtToUser(token: string): User {
+export function mapJwtToUser(token: string): LoggedInUser {
   const payload = jwtDecode<JwtPayload>(token);
 
   return {

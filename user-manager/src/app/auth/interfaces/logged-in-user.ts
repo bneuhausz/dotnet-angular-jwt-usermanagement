@@ -1,6 +1,6 @@
 import { Menu } from "./menu";
 
-export interface User {
+export interface LoggedInUser {
   id: string;
   name: string;
   email: string;

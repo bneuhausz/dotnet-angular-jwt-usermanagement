@@ -4,11 +4,11 @@ import { Subject, switchMap, tap } from "rxjs";
 import { mapJwtToUser } from "../utils/jwt.utils";
 import { LoginRequest } from "../interfaces/requests/login.request";
 import { LoginResponse } from "../interfaces/responses/login.response";
-import { User } from "../interfaces/user";
+import { LoggedInUser } from "../interfaces/logged-in-user";
 import { Router } from "@angular/router";
 
 type AuthState = {
-  user?: User;
+  user?: LoggedInUser;
   isLoading: boolean;
 }
 
@@ -40,7 +40,6 @@ export class AuthService {
       ),
       tap((res) => {
         const user = mapJwtToUser(res.token);
-        console.log('Mapped user:', user);
         this.#state.update((state) => ({ ...state, isLoading: false, user }));
         this.#router.navigate(['/']);
       })
