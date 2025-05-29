@@ -33,24 +33,61 @@ public class RolesController : ControllerBase
         return Ok(users);
     }
 
+    [HttpPost]
+    public async Task<IActionResult> CreateRole(CreateRoleDto createRoleDto)
+    {
+        var tempUser = _db.Users.First(x => x.UserName == "admin");
+
+        var role = new Role
+        {
+            Name = createRoleDto.Name,
+            CreatedByUser = tempUser
+        };
+
+        _db.Roles.Add(role);
+        await _db.SaveChangesAsync();
+
+        return Created();
+    }
+
+    [HttpPut("{roleId:guid}/toggledeleted")]
+    public async Task<IActionResult> ToggleDeleted(Guid roleId)
+    {
+        var role = await _db.Roles.FindAsync(roleId);
+
+        if (role == null) return NotFound();
+
+        role.IsDeleted = !role.IsDeleted;
+        _db.Roles.Update(role);
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
     [HttpGet("{roleId:guid}/permissions")]
     public async Task<IActionResult> GetPermissionsByRoleId(Guid roleId)
     {
-        var userRoles = await _db.RolePermissions
-            .Where(r => r.RoleId == roleId && !r.IsDeleted)
-            .Select(rp => new PermissionDto
+        var userRoles = await _db.Permissions
+            .Where(p => !p.IsDeleted)
+            .Select(p => new RolePermissionDto
             {
-                Id = rp.PermissionId,
-                Name = rp.Permission.Name
+                Id = p.Id,
+                Name = p.Name,
+                ParentPermissionId = p.ParentPermissionId,
+                IsAssigned = _db.RolePermissions
+                    .Any(rp => rp.RoleId == roleId && rp.PermissionId == p.Id && !rp.IsDeleted)
             })
             .AsNoTracking()
             .ToListAsync();
+
         return Ok(userRoles);
     }
 
     [HttpPut("{roleId:guid}/togglepermission/{permissionId:guid}")]
     public async Task<IActionResult> TogglePermission(Guid roleId, Guid permissionId)
     {
+        var tempUser = _db.Users.First(x => x.UserName == "admin");
+
         var rolePermission = await _db.RolePermissions
             .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId);
 
@@ -60,6 +97,7 @@ public class RolesController : ControllerBase
             {
                 RoleId = roleId,
                 PermissionId = permissionId,
+                CreatedByUser = tempUser,
             };
             _db.RolePermissions.Add(rolePermission);
         }

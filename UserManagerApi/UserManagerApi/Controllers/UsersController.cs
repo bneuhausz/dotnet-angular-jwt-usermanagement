@@ -55,12 +55,14 @@ public class UsersController : ControllerBase
     [HttpGet("{userId:guid}/roles")]
     public async Task<IActionResult> GetRolesByUserId(Guid userId)
     {
-        var userRoles = await _db.UserRoles
-            .Where(ur => ur.UserId == userId && !ur.IsDeleted)
-            .Select(ur => new RoleDto
+        var userRoles = await _db.Roles
+            .Where(r => !r.IsDeleted)
+            .Select(r => new UserRoleDto
             {
-                Id = ur.RoleId,
-                Name = ur.Role.Name
+                Id = r.Id,
+                Name = r.Name,
+                IsAssigned = _db.UserRoles
+                    .Any(ur => ur.UserId == userId && ur.RoleId == r.Id && !ur.IsDeleted)
             })
             .AsNoTracking()
             .ToListAsync();
@@ -71,11 +73,14 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateUser(CreateUserDto createUserDto)
     {
+        var tempUser = _db.Users.First(x => x.UserName == "admin");
+
         var user = new User
         {
             UserName = createUserDto.UserName,
             Email = createUserDto.Email,
-            PasswordHash = _passwordVerificationService.HashPassword(createUserDto.Password)
+            PasswordHash = _passwordVerificationService.HashPassword(createUserDto.Password),
+            CreatedByUser = tempUser,
         };
 
         _db.Users.Add(user);
@@ -123,6 +128,8 @@ public class UsersController : ControllerBase
     [HttpPut("{userId:guid}/togglerole/{roleId}")]
     public async Task<IActionResult> ToggleRole(Guid userId, Guid roleId)
     {
+        var tempUser = _db.Users.First(x => x.UserName == "admin");
+
         var userRole = _db.UserRoles
             .FirstOrDefault(ur => ur.UserId == userId && ur.RoleId == roleId);
 
@@ -132,6 +139,7 @@ public class UsersController : ControllerBase
             {
                 UserId = userId,
                 RoleId = roleId,
+                CreatedByUser = tempUser
             });
             await _db.SaveChangesAsync();
         }
