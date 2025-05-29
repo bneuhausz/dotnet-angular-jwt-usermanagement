@@ -69,6 +69,7 @@ public class AuthController : ControllerBase
                 p.Name,
                 p.ParentPermissionId
             })
+            .DistinctBy(p => p.Id)
             .ToList();
 
         var menuDict = userMenus
