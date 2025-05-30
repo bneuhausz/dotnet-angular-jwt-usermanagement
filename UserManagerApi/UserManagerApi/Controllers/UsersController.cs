@@ -73,14 +73,11 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateUser(CreateUserDto createUserDto)
     {
-        var tempUser = _db.Users.First(x => x.UserName == "admin");
-
         var user = new User
         {
             UserName = createUserDto.UserName,
             Email = createUserDto.Email,
             PasswordHash = _passwordVerificationService.HashPassword(createUserDto.Password),
-            CreatedByUser = tempUser,
         };
 
         _db.Users.Add(user);
@@ -128,8 +125,6 @@ public class UsersController : ControllerBase
     [HttpPut("{userId:guid}/togglerole/{roleId}")]
     public async Task<IActionResult> ToggleRole(Guid userId, Guid roleId)
     {
-        var tempUser = _db.Users.First(x => x.UserName == "admin");
-
         var userRole = _db.UserRoles
             .FirstOrDefault(ur => ur.UserId == userId && ur.RoleId == roleId);
 
@@ -139,7 +134,6 @@ public class UsersController : ControllerBase
             {
                 UserId = userId,
                 RoleId = roleId,
-                CreatedByUser = tempUser
             });
             await _db.SaveChangesAsync();
         }

@@ -1,11 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using UserManagerApi.Services;
 
 namespace UserManagerApi.Data;
 
 public class UsersDbContext : DbContext
 {
-    public UsersDbContext(DbContextOptions<UsersDbContext> options) : base(options)
+    private readonly CurrentUserService _currentUserService;
+
+    public UsersDbContext(DbContextOptions<UsersDbContext> options, CurrentUserService currentUserService) : base(options)
     {
+        _currentUserService = currentUserService;
     }
 
     public DbSet<User> Users => Set<User>();
@@ -113,5 +117,27 @@ public class UsersDbContext : DbContext
                 .HasForeignKey(e => e.PermissionId)
                 .HasConstraintName("FK_RolePermissions_Permission");
         });
+    }
+
+    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.UtcNow;
+        var userId = _currentUserService.UserId ?? throw new InvalidOperationException("User ID not set");
+
+        foreach (var entry in ChangeTracker.Entries<AuditableEntity>())
+        {
+            if (entry.State == EntityState.Added)
+            {
+                entry.Entity.CreatedAt = now;
+                entry.Entity.CreatedBy = userId;
+            }
+            else if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.ModifiedAt = now;
+                entry.Entity.ModifiedBy = userId;
+            }
+        }
+
+        return await base.SaveChangesAsync(cancellationToken);
     }
 }

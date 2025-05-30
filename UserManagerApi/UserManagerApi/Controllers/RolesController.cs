@@ -36,12 +36,10 @@ public class RolesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreateRole(CreateRoleDto createRoleDto)
     {
-        var tempUser = _db.Users.First(x => x.UserName == "admin");
 
         var role = new Role
         {
             Name = createRoleDto.Name,
-            CreatedByUser = tempUser
         };
 
         _db.Roles.Add(role);
@@ -86,8 +84,6 @@ public class RolesController : ControllerBase
     [HttpPut("{roleId:guid}/togglepermission/{permissionId:guid}")]
     public async Task<IActionResult> TogglePermission(Guid roleId, Guid permissionId)
     {
-        var tempUser = _db.Users.First(x => x.UserName == "admin");
-
         var rolePermission = await _db.RolePermissions
             .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId);
 
@@ -97,7 +93,6 @@ public class RolesController : ControllerBase
             {
                 RoleId = roleId,
                 PermissionId = permissionId,
-                CreatedByUser = tempUser,
             };
             _db.RolePermissions.Add(rolePermission);
         }
