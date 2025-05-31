@@ -1,3 +1,4 @@
+using AuthService.BackgroundServices;
 using AuthService.Data;
 using AuthService.Services;
 using Microsoft.AspNetCore.Identity;
@@ -10,6 +11,8 @@ builder.Services.AddDbContext<AuthDbContext>(options => options.UseSqlServer(bui
 
 builder.Services.AddSingleton<IPasswordHasher<object>, PasswordHasher<object>>();
 builder.Services.AddSingleton<PasswordVerificationService>();
+
+builder.Services.AddHostedService<RefreshTokenCleanupService>();
 
 builder.Services.AddControllers();
 
