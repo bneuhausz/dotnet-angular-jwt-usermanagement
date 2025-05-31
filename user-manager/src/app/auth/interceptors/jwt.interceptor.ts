@@ -4,7 +4,7 @@ import { AuthService } from '../data-access/auth.service';
 
 export const jwtInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
-  const token = authService.user()?.token;
+  const token = authService.user()?.accessToken;
   const isApiUrl = req.url.includes('api/');
 
   if (token && isApiUrl) {

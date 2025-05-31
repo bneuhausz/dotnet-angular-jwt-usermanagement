@@ -4,7 +4,9 @@ export interface LoggedInUser {
   id: number;
   name: string;
   email: string;
-  token: string;
+  accessToken: string;
+  refreshToken?: string;
   permissions: string[];
-  menus: Menu[]
+  menus: Menu[];
+  expiresAt: Date;
 }

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -40,24 +41,72 @@ public class AuthController : ControllerBase
         if (user == null || !_passwordVerificationService.VerifyPassword(user.PasswordHash, dto.Password))
             return Unauthorized();
 
-        var userRoles = await _db.UserRoles
-            .Where(ur => ur.UserId == user.Id)
-            .Select(ur => ur.RoleId)
-            .ToListAsync();
+        var accessToken = await CreateToken(user);
+        var refreshToken = GenerateRefreshToken();
 
-        var permissions = await _db.RolePermissions
-            .Where(rp => userRoles.Contains(rp.RoleId))
-            .Select(rp => rp.Permission)
-            .ToListAsync();
+        var refreshTokenEntity = new UserRefreshToken
+        {
+            UserId = user.Id,
+            Token = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:RefreshTokenExpirationMinutes"]!))
+        };
 
-        var permissionNames = permissions
-            .Where(p => p.Type == PermissionType.Action)
-            .Select(p => p.Name)
-            .Distinct()
-            .ToList();
+        _db.UserRefreshTokens.Add(refreshTokenEntity);
+        await _db.SaveChangesAsync();
 
-        return Ok(new UserDto { Token = CreateToken(user, permissionNames, CreateMenuTree(permissions)) });
+        return Ok(new UserDto { AccessToken = accessToken, RefreshToken = refreshToken });
     }
+
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh(RefreshTokenDto dto)
+    {
+        var refreshTokenEntity = await _db.UserRefreshTokens
+            .Include(rt => rt.User)
+            .FirstOrDefaultAsync(rt => rt.Token == dto.RefreshToken);
+
+        if (refreshTokenEntity == null || !refreshTokenEntity.IsActive)
+            return Unauthorized("Invalid or expired refresh token.");
+
+        refreshTokenEntity.RevokedAt = DateTime.UtcNow;
+        var newRefreshToken = GenerateRefreshToken();
+
+        var newRefreshTokenEntity = new UserRefreshToken
+        {
+            UserId = refreshTokenEntity.UserId,
+            Token = newRefreshToken,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:RefreshTokenExpirationMinutes"]!)),
+            CreatedAt = DateTime.UtcNow,
+            ReplacedByToken = newRefreshToken
+        };
+
+        _db.UserRefreshTokens.Add(newRefreshTokenEntity);
+        await _db.SaveChangesAsync();
+
+        var user = refreshTokenEntity.User;
+        var accessToken = await CreateToken(user);
+
+        return Ok(new UserDto
+        {
+            AccessToken = accessToken,
+            RefreshToken = newRefreshToken
+        });
+    }
+
+    [HttpPost("revoke")]
+    public async Task<IActionResult> Revoke(RefreshTokenDto dto)
+    {
+        var refreshTokenEntity = await _db.UserRefreshTokens
+            .FirstOrDefaultAsync(rt => rt.Token == dto.RefreshToken);
+
+        if (refreshTokenEntity == null || !refreshTokenEntity.IsActive)
+            return NotFound("Token not found or already revoked.");
+
+        refreshTokenEntity.RevokedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return NoContent();
+    }
+
 
     private List<MenuDto> CreateMenuTree(List<Permission> permissions)
     {
@@ -96,16 +145,34 @@ public class AuthController : ControllerBase
         return menus;
     }
 
-    private string CreateToken(User user, List<string> permissionNames, List<MenuDto> menus)
+    private async Task<string> CreateToken(User user)
     {
+        var userRoles = await _db.UserRoles
+            .Where(ur => ur.UserId == user.Id)
+            .Select(ur => ur.RoleId)
+            .ToListAsync();
+
+        var permissions = await _db.RolePermissions
+            .Where(rp => userRoles.Contains(rp.RoleId))
+            .Select(rp => rp.Permission)
+            .ToListAsync();
+
+        var permissionNames = permissions
+            .Where(p => p.Type == PermissionType.Action)
+            .Select(p => p.Name)
+            .Distinct()
+            .ToList();
+
+        var menus = CreateMenuTree(permissions);
+
         //TODO: implement options pattern and handle config better
         var secret = Encoding.UTF8.GetBytes(_config["Jwt:Secret"]!);
+
         var token = new JwtSecurityToken(
             claims: CreateClaims(user, permissionNames, menus),
-            //TODO: add to config
-            expires: DateTime.UtcNow.AddHours(24),
-            issuer: "auth-service",
-            audience: "user-manager-api",
+            expires: DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:AccessTokenExpirationMinutes"]!)),
+            issuer: _config["Jwt:Issuer"]!,
+            audience: _config["Jwt:Audience"]!,
             signingCredentials: new SigningCredentials(
                 new SymmetricSecurityKey(secret),
                 SecurityAlgorithms.HmacSha256)
@@ -126,5 +193,13 @@ public class AuthController : ControllerBase
         };
 
         return claims;
+    }
+
+    private string GenerateRefreshToken()
+    {
+        var randomNumber = new byte[64];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
     }
 }

@@ -1,6 +1,6 @@
 import { computed, inject, Injectable, signal } from "@angular/core";
 import { HttpClient } from "@angular/common/http";
-import { Subject, switchMap, tap } from "rxjs";
+import { filter, Subject, Subscription, switchMap, tap, timer } from "rxjs";
 import { mapJwtToUser } from "../utils/jwt.utils";
 import { LoginRequest } from "../interfaces/requests/login.request";
 import { LoginResponse } from "../interfaces/responses/login.response";
@@ -18,6 +18,7 @@ type AuthState = {
 export class AuthService {
   readonly #http = inject(HttpClient);
   readonly #router = inject(Router);
+  private refreshTimerSub?: Subscription;
 
   readonly #state = signal<AuthState>({
     isLoading: false
@@ -29,6 +30,7 @@ export class AuthService {
 
   readonly login$ = new Subject<LoginRequest>();
   readonly logout$ = new Subject<void>();
+  readonly refresh$ = new Subject<void>();
 
   readonly #login = this.login$
     .pipe(
@@ -39,19 +41,49 @@ export class AuthService {
         })
       ),
       tap((res) => {
-        const user = mapJwtToUser(res.token);
+        const user = mapJwtToUser(res.accessToken, res.refreshToken);
         this.#state.update((state) => ({ ...state, isLoading: false, user }));
+        this.scheduleRefresh(user.expiresAt);
         this.#router.navigate(['/']);
+      })
+    );
+
+  readonly #refresh = this.refresh$
+    .pipe(
+      filter(() => !!this.#state().user),
+      switchMap(() => this.#http.post<LoginResponse>('/auth/refresh', { refreshToken: this.#state().user?.refreshToken })),
+      tap((res) => {
+        const user = mapJwtToUser(res.accessToken, res.refreshToken);
+        this.#state.update((state) => ({ ...state, user }));
+        this.scheduleRefresh(user.expiresAt);
       })
     );
 
   constructor() {
     this.#login.subscribe();
+    this.#refresh.subscribe()
 
     this.logout$
+      .pipe(
+        switchMap(() => this.#http.post('/auth/revoke', { refreshToken: this.#state().user?.refreshToken })),
+      )
       .subscribe(() => {
+        this.clearRefreshTimer();
         this.#state.update((state) => ({ ...state, user: undefined }));
         this.#router.navigate(['/login']);
       });
+  }
+
+  private scheduleRefresh(expiresAt: Date) {
+    const delay = expiresAt.getTime() - 60_000 - Date.now();
+    if (delay > 0) {
+      this.refreshTimerSub?.unsubscribe();
+      this.refreshTimerSub = timer(delay).subscribe(() => this.refresh$.next());
+    }
+  }
+
+  private clearRefreshTimer() {
+    this.refreshTimerSub?.unsubscribe();
+    this.refreshTimerSub = undefined;
   }
 }
