@@ -48,8 +48,8 @@ public class RolesController : ControllerBase
         return Created();
     }
 
-    [HttpPut("{roleId:guid}/toggledeleted")]
-    public async Task<IActionResult> ToggleDeleted(Guid roleId)
+    [HttpPut("{roleId:int}/toggledeleted")]
+    public async Task<IActionResult> ToggleDeleted(int roleId)
     {
         var role = await _db.Roles.FindAsync(roleId);
 
@@ -62,18 +62,17 @@ public class RolesController : ControllerBase
         return NoContent();
     }
 
-    [HttpGet("{roleId:guid}/permissions")]
-    public async Task<IActionResult> GetPermissionsByRoleId(Guid roleId)
+    [HttpGet("{roleId:int}/permissions")]
+    public async Task<IActionResult> GetPermissionsByRoleId(int roleId)
     {
         var userRoles = await _db.Permissions
-            .Where(p => !p.IsDeleted)
             .Select(p => new RolePermissionDto
             {
                 Id = p.Id,
                 Name = p.Name,
                 ParentPermissionId = p.ParentPermissionId,
                 IsAssigned = _db.RolePermissions
-                    .Any(rp => rp.RoleId == roleId && rp.PermissionId == p.Id && !rp.IsDeleted)
+                    .Any(rp => rp.RoleId == roleId && rp.PermissionId == p.Id)
             })
             .AsNoTracking()
             .ToListAsync();
@@ -81,8 +80,8 @@ public class RolesController : ControllerBase
         return Ok(userRoles);
     }
 
-    [HttpPut("{roleId:guid}/togglepermission/{permissionId:guid}")]
-    public async Task<IActionResult> TogglePermission(Guid roleId, Guid permissionId)
+    [HttpPut("{roleId:int}/togglepermission/{permissionId:int}")]
+    public async Task<IActionResult> TogglePermission(int roleId, int permissionId)
     {
         var rolePermission = await _db.RolePermissions
             .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId);
@@ -98,8 +97,7 @@ public class RolesController : ControllerBase
         }
         else
         {
-            rolePermission.IsDeleted = !rolePermission.IsDeleted;
-            _db.RolePermissions.Update(rolePermission);
+            _db.RolePermissions.Remove(rolePermission);
         }
         await _db.SaveChangesAsync();
 

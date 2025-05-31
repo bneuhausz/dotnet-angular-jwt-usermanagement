@@ -41,17 +41,17 @@ public class AuthController : ControllerBase
             return Unauthorized();
 
         var userRoles = await _db.UserRoles
-            .Where(ur => ur.UserId == user.Id && !ur.IsDeleted)
+            .Where(ur => ur.UserId == user.Id)
             .Select(ur => ur.RoleId)
             .ToListAsync();
 
         var permissions = await _db.RolePermissions
-            .Where(rp => userRoles.Contains(rp.RoleId) && !rp.IsDeleted)
+            .Where(rp => userRoles.Contains(rp.RoleId))
             .Select(rp => rp.Permission)
             .ToListAsync();
 
         var permissionNames = permissions
-            .Where(p => !p.IsDeleted && p.Type == "Action")
+            .Where(p => p.Type == PermissionType.Action)
             .Select(p => p.Name)
             .Distinct()
             .ToList();
@@ -62,7 +62,7 @@ public class AuthController : ControllerBase
     private List<MenuDto> CreateMenuTree(List<Permission> permissions)
     {
         var userMenus = permissions
-            .Where(p => p.Type == "Menu" && !p.IsDeleted)
+            .Where(p => p.Type == PermissionType.Menu)
             .Select(p => new
             {
                 p.Id,
@@ -102,6 +102,7 @@ public class AuthController : ControllerBase
         var secret = Encoding.UTF8.GetBytes(_config["Jwt:Secret"]!);
         var token = new JwtSecurityToken(
             claims: CreateClaims(user, permissionNames, menus),
+            //TODO: add to config
             expires: DateTime.UtcNow.AddHours(24),
             issuer: "auth-service",
             audience: "user-manager-api",

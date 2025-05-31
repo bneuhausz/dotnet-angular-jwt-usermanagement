@@ -1,13 +1,31 @@
-﻿namespace UserManagerApi.Data;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 
-public class Permission : AuditableEntity
+namespace UserManagerApi.Data;
+
+public enum PermissionType
 {
-    public Guid Id { get; set; }
-    public string Name { get; set; } = null!;
-    public Guid? ParentPermissionId { get; set; }
-    public string Type { get; set; } = null!;
+    Menu,
+    Action
+}
 
-    public Permission? ParentPermission { get; set; }
-    public ICollection<Permission> ChildPermissions { get; set; } = new List<Permission>();
-    public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
+public class Permission
+{
+    [Key]
+    public int Id { get; set; }
+
+    [Required]
+    [StringLength(100)]
+    public string Name { get; set; } = null!;
+
+    public int? ParentPermissionId { get; set; }
+    [ForeignKey(nameof(ParentPermissionId))]
+    public virtual Permission? ParentPermission { get; set; }
+
+    [Required]
+    [StringLength(20)]
+    public PermissionType Type { get; set; }
+
+    public virtual ICollection<Permission> ChildPermissions { get; set; } = new List<Permission>();
+    public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
 }

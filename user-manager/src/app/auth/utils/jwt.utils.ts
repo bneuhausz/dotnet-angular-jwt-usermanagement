@@ -3,7 +3,7 @@ import { LoggedInUser } from '../interfaces/logged-in-user';
 import { Menu } from '../interfaces/menu';
 
 interface JwtPayload {
-  sub: string;
+  sub: number;
   name: string;
   email: string;
   permissions: string;

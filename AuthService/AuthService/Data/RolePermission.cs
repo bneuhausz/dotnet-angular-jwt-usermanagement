@@ -1,11 +1,10 @@
 ﻿namespace AuthService.Data;
 
-public class RolePermission : AuditableEntity
+public class RolePermission
 {
-    public Guid Id { get; set; }
-    public Guid RoleId { get; set; }
-    public Guid PermissionId { get; set; }
+    public int RoleId { get; set; }
+    public virtual Role Role { get; set; } = null!;
 
-    public Role Role { get; set; } = null!;
-    public Permission Permission { get; set; } = null!;
+    public int PermissionId { get; set; }
+    public virtual Permission Permission { get; set; } = null!;
 }

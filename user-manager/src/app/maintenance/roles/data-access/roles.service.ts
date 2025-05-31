@@ -33,7 +33,7 @@ export class RolesService {
   );
 
   permissionTree = computed(() => {
-    const map = new Map<string, PermissionNode>();
+    const map = new Map<number, PermissionNode>();
     const roots: PermissionNode[] = [];
     const permissions = this.rolePermissions.value();
 
@@ -55,12 +55,12 @@ export class RolesService {
     switchMap((name) => this.createRole(name))
   );
 
-  readonly toggleDeleted$ = new Subject<string>();
+  readonly toggleDeleted$ = new Subject<number>();
   readonly #toggleDeleted$ = this.toggleDeleted$.pipe(
     switchMap((id) => this.toggleDeleted(id))
   );
 
-  readonly togglePermission$ = new Subject<string>();
+  readonly togglePermission$ = new Subject<number>();
   readonly #togglePermission$ = this.togglePermission$.pipe(
     switchMap((id) => this.togglePermission(id))
   );
@@ -81,11 +81,11 @@ export class RolesService {
     return this.#http.post('/api/roles', { name })
   }
 
-  private toggleDeleted(id: string) {
+  private toggleDeleted(id: number) {
     return this.#http.put(`/api/roles/${id}/toggledeleted`, {});
   }
 
-  private togglePermission(permissionId: string) {
+  private togglePermission(permissionId: number) {
     return this.#http.put(`/api/roles/${this.selectedRoleId()}/togglepermission/${permissionId}`, {});
   }
 }

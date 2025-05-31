@@ -1,13 +1,22 @@
-﻿namespace UserManagerApi.Data;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
-public class AuditableEntity
+namespace UserManagerApi.Data;
+
+public abstract class AuditableEntity
 {
-    public bool IsDeleted { get; set; }
-    public DateTime CreatedAt { get; set; }
-    public Guid CreatedBy { get; set; }
-    public DateTime? ModifiedAt { get; set; }
-    public Guid? ModifiedBy { get; set; }
+    public bool IsDeleted { get; set; } = false;
 
-    public User CreatedByUser { get; set; } = null!;
-    public User? ModifiedByUser { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    public int CreatedBy { get; set; }
+
+    public DateTime? ModifiedAt { get; set; }
+
+    public int? ModifiedBy { get; set; }
+
+    [ForeignKey(nameof(CreatedBy))]
+    public virtual User CreatedByUser { get; set; } = null!;
+
+    [ForeignKey(nameof(ModifiedBy))]
+    public virtual User? ModifiedByUser { get; set; }
 }

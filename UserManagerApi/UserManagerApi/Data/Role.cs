@@ -1,10 +1,16 @@
-﻿namespace UserManagerApi.Data;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace UserManagerApi.Data;
 
 public class Role : AuditableEntity
 {
-    public Guid Id { get; set; }
+    [Key]
+    public int Id { get; set; }
+
+    [Required]
+    [StringLength(100)]
     public string Name { get; set; } = null!;
 
-    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
-    public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
+    public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+    public virtual ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
 }

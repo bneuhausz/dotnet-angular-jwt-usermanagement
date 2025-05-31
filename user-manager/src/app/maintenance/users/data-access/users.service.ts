@@ -42,12 +42,12 @@ export class UsersService {
     switchMap((user) => this.createUser(user))
   );
   
-  readonly toggleDeleted$ = new Subject<string>();
+  readonly toggleDeleted$ = new Subject<number>();
   readonly #toggleDeleted$ = this.toggleDeleted$.pipe(
     switchMap((id) => this.toggleDeleted(id))
   );
 
-  readonly toggleRole$ = new Subject<string>();
+  readonly toggleRole$ = new Subject<number>();
   readonly #toggleRole$ = this.toggleRole$.pipe(
     switchMap((id) => this.toggleRole(id))
   );
@@ -70,11 +70,11 @@ export class UsersService {
     return this.#http.post('/api/users', user);
   }
 
-  private toggleDeleted(id: string) {
+  private toggleDeleted(id: number) {
     return this.#http.put(`/api/users/${id}/toggledeleted`, {});
   }
 
-  private toggleRole(roleId: string) {
+  private toggleRole(roleId: number) {
     return this.#http.put(`/api/users/${this.selectedUserId()}/togglerole/${roleId}`, {});
   }
 }

@@ -1,7 +1,7 @@
 import { Menu } from "./menu";
 
 export interface LoggedInUser {
-  id: string;
+  id: number;
   name: string;
   email: string;
   token: string;

@@ -22,7 +22,6 @@ public class PermissionsController : ControllerBase
     public async Task<IActionResult> GetAll()
     {
         var permissions = await _db.Permissions
-            .Where(p => !p.IsDeleted)
             .Select(p => new PermissionDto
             {
                 Id = p.Id,

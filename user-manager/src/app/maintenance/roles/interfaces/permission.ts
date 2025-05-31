@@ -1,6 +1,6 @@
 export interface Permission {
-  id: string;
-  parentPermissionId?: string;
+  id: number;
+  parentPermissionId?: number;
   name: string;
   type?: string;
 }

@@ -1,11 +1,13 @@
-﻿namespace UserManagerApi.Data;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations;
 
-public class UserRole : AuditableEntity
+namespace UserManagerApi.Data;
+
+public class UserRole
 {
-    public Guid Id { get; set; }
-    public Guid UserId { get; set; }
-    public Guid RoleId { get; set; }
+    public int UserId { get; set; }
+    public virtual User User { get; set; } = null!;
 
-    public User User { get; set; } = null!;
-    public Role Role { get; set; } = null!;
+    public int RoleId { get; set; }
+    public virtual Role Role { get; set; } = null!;
 }

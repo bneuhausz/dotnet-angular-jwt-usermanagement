@@ -16,7 +16,7 @@ public class UserContextMiddleware
         if (context.User.Identity?.IsAuthenticated == true)
         {
             var subClaim = context.User.FindFirst("sub");
-            if (subClaim != null && Guid.TryParse(subClaim.Value, out var userId))
+            if (subClaim != null && int.TryParse(subClaim.Value, out var userId))
             {
                 currentUserService.UserId = userId;
             }

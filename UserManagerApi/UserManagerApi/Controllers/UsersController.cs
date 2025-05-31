@@ -37,8 +37,8 @@ public class UsersController : ControllerBase
         return Ok(users);
     }
 
-    [HttpGet("{userId:guid}")]
-    public async Task<IActionResult> Get(Guid userId)
+    [HttpGet("{userId:int}")]
+    public async Task<IActionResult> Get(int userId)
     {
         var user = await _db.Users.FindAsync(userId);
 
@@ -52,8 +52,8 @@ public class UsersController : ControllerBase
         });
     }
 
-    [HttpGet("{userId:guid}/roles")]
-    public async Task<IActionResult> GetRolesByUserId(Guid userId)
+    [HttpGet("{userId:int}/roles")]
+    public async Task<IActionResult> GetRolesByUserId(int userId)
     {
         var userRoles = await _db.Roles
             .Where(r => !r.IsDeleted)
@@ -62,7 +62,7 @@ public class UsersController : ControllerBase
                 Id = r.Id,
                 Name = r.Name,
                 IsAssigned = _db.UserRoles
-                    .Any(ur => ur.UserId == userId && ur.RoleId == r.Id && !ur.IsDeleted)
+                    .Any(ur => ur.UserId == userId && ur.RoleId == r.Id)
             })
             .AsNoTracking()
             .ToListAsync();
@@ -86,8 +86,8 @@ public class UsersController : ControllerBase
         return Created();
     }
 
-    [HttpPatch("{userId:guid}")]
-    public async Task<IActionResult> UpdateUser(Guid userId, [FromBody] PatchUserDto patchUserDto)
+    [HttpPatch("{userId:int}")]
+    public async Task<IActionResult> UpdateUser(int userId, [FromBody] PatchUserDto patchUserDto)
     {
         var user = await _db.Users.FindAsync(userId);
 
@@ -108,8 +108,8 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
-    [HttpPut("{userId:guid}/toggledeleted")]
-    public async Task<IActionResult> ToggleDeleted(Guid userId)
+    [HttpPut("{userId:int}/toggledeleted")]
+    public async Task<IActionResult> ToggleDeleted(int userId)
     {
         var user = await _db.Users.FindAsync(userId);
 
@@ -122,8 +122,8 @@ public class UsersController : ControllerBase
         return NoContent();
     }
 
-    [HttpPut("{userId:guid}/togglerole/{roleId}")]
-    public async Task<IActionResult> ToggleRole(Guid userId, Guid roleId)
+    [HttpPut("{userId:int}/togglerole/{roleId:int}")]
+    public async Task<IActionResult> ToggleRole(int userId, int roleId)
     {
         var userRole = _db.UserRoles
             .FirstOrDefault(ur => ur.UserId == userId && ur.RoleId == roleId);
@@ -139,8 +139,7 @@ public class UsersController : ControllerBase
         }
         else
         {
-            userRole.IsDeleted = !userRole.IsDeleted;
-            _db.UserRoles.Update(userRole);
+            _db.UserRoles.Remove(userRole);
             await _db.SaveChangesAsync();
         }
 

@@ -1,9 +1,11 @@
-﻿namespace UserManagerApi.Dtos;
+﻿using UserManagerApi.Data;
+
+namespace UserManagerApi.Dtos;
 
 public class PermissionDto
 {
-    public required Guid Id { get; set; }
-    public Guid? ParentPermissionId { get; set; }
+    public required int Id { get; set; }
+    public int? ParentPermissionId { get; set; }
     public required string Name { get; set; }
-    public string? Type { get; set; }
+    public PermissionType? Type { get; set; }
 }
