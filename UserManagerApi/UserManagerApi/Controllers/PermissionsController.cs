@@ -1,15 +1,13 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using UserManagerApi.Attributes;
 using UserManagerApi.Data;
 using UserManagerApi.Dtos;
 
 namespace UserManagerApi.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-[Authorize]
-public class PermissionsController : ControllerBase
+[CheckPermissions("Roles")]
+public class PermissionsController : MaintenanceController
 {
     private readonly UsersDbContext _db;
 

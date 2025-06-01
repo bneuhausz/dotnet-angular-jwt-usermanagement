@@ -1,16 +1,14 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using UserManagerApi.Attributes;
 using UserManagerApi.Data;
 using UserManagerApi.Dtos;
 using UserManagerApi.Services;
 
 namespace UserManagerApi.Controllers;
 
-[ApiController]
-[Route("api/[controller]")]
-[Authorize]
-public class UsersController : ControllerBase
+[CheckPermissions("Users")]
+public class UsersController : MaintenanceController
 {
     private readonly UsersDbContext _db;
     private readonly PasswordVerificationService _passwordVerificationService;
@@ -71,6 +69,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPost]
+    [CheckPermissions("MaintainUsers")]
     public async Task<IActionResult> CreateUser(CreateUserDto createUserDto)
     {
         var user = new User
@@ -87,6 +86,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPatch("{userId:int}")]
+    [CheckPermissions("MaintainUsers")]
     public async Task<IActionResult> UpdateUser(int userId, [FromBody] PatchUserDto patchUserDto)
     {
         var user = await _db.Users.FindAsync(userId);
@@ -109,6 +109,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{userId:int}/toggledeleted")]
+    [CheckPermissions("MaintainUsers")]
     public async Task<IActionResult> ToggleDeleted(int userId)
     {
         var user = await _db.Users.FindAsync(userId);
@@ -123,6 +124,7 @@ public class UsersController : ControllerBase
     }
 
     [HttpPut("{userId:int}/togglerole/{roleId:int}")]
+    [CheckPermissions("MaintainUsers")]
     public async Task<IActionResult> ToggleRole(int userId, int roleId)
     {
         var userRole = _db.UserRoles
