@@ -41,7 +41,7 @@ public class AuthController : ControllerBase
         if (user == null || !_passwordVerificationService.VerifyPassword(user.PasswordHash, dto.Password))
             return Unauthorized();
 
-        var accessToken = await CreateToken(user);
+        var accessToken = await CreateAccessToken(user);
         var refreshToken = GenerateRefreshToken();
 
         var refreshTokenEntity = new UserRefreshToken
@@ -83,7 +83,7 @@ public class AuthController : ControllerBase
         await _db.SaveChangesAsync();
 
         var user = refreshTokenEntity.User;
-        var accessToken = await CreateToken(user);
+        var accessToken = await CreateAccessToken(user);
 
         return Ok(new UserDto
         {
@@ -145,7 +145,7 @@ public class AuthController : ControllerBase
         return menus;
     }
 
-    private async Task<string> CreateToken(User user)
+    private async Task<string> CreateAccessToken(User user)
     {
         var userRoles = await _db.UserRoles
             .Where(ur => ur.UserId == user.Id)
@@ -158,7 +158,6 @@ public class AuthController : ControllerBase
             .ToListAsync();
 
         var permissionNames = permissions
-            .Where(p => p.Type == PermissionType.Action)
             .Select(p => p.Name)
             .Distinct()
             .ToList();

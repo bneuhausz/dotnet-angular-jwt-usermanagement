@@ -75,10 +75,13 @@ export class AuthService {
   }
 
   private scheduleRefresh(expiresAt: Date) {
+    this.clearRefreshTimer();
     const delay = expiresAt.getTime() - 60_000 - Date.now();
     if (delay > 0) {
-      this.refreshTimerSub?.unsubscribe();
       this.refreshTimerSub = timer(delay).subscribe(() => this.refresh$.next());
+    }
+    else {
+      this.logout$.next();
     }
   }
 
