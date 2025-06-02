@@ -1,5 +1,5 @@
 services:
-  sqlserver:
+  db:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
       - ACCEPT_EULA=Y
@@ -7,5 +7,61 @@ services:
       - TZ=Europe/Amsterdam
     ports:
       - "1433:1433"
+
+  db-init:
+    image: mcr.microsoft.com/mssql-tools
+    depends_on:
+      - db
+    entrypoint: /bin/bash
+    command: >
+      -c "
+      for i in {1..60}; do
+        /opt/mssql-tools/bin/sqlcmd -S db -U sa -P P4SSW0RD! -Q 'SELECT 1' && break || sleep 2;
+      done &&
+      /opt/mssql-tools/bin/sqlcmd -S db -U sa -P P4SSW0RD! -d master -i /init-sql/0_create_database.sql &&
+      /opt/mssql-tools/bin/sqlcmd -S db -U sa -P P4SSW0RD! -d AuthDemo -i /init-sql/1_create_schema_and_seed.sql
+      "
     volumes:
-      - C:/docker/volumes/sqlserver2022/data:/var/opt/mssql/data
+      - ./Database:/init-sql:ro
+    restart: "no"
+
+  authservice:
+    image: mcr.microsoft.com/dotnet/sdk:9.0
+    environment:
+      - ConnectionStrings__AuthDb=Server=db;Database=AuthDemo;User Id=sa;Password=P4SSW0RD!;TrustServerCertificate=True;
+    working_dir: /src
+    volumes:
+      - ./AuthService:/src
+    command: >
+      bash -c "dotnet restore AuthService/AuthService.csproj && dotnet run --project AuthService/AuthService.csproj --urls=http://0.0.0.0:7008"
+    ports:
+      - "7008:7008"
+    depends_on:
+      - db-init
+
+  usermanagerapi:
+    image: mcr.microsoft.com/dotnet/sdk:9.0
+    environment:
+      - ConnectionStrings__UsersDb=Server=db;Database=AuthDemo;User Id=sa;Password=P4SSW0RD!;TrustServerCertificate=True;
+    working_dir: /src
+    volumes:
+      - ./UserManagerApi:/src
+    command: >
+      bash -c "dotnet restore UserManagerApi/UserManagerApi.csproj && dotnet run --project UserManagerApi/UserManagerApi.csproj --urls=http://0.0.0.0:7255"
+    ports:
+      - "7255:7255"
+    depends_on:
+      - db-init
+
+  usermanager-app:
+    image: node:23
+    working_dir: /app
+    volumes:
+      - ./user-manager:/app
+    command: >
+      sh -c "npm install && npm run start -- --host 0.0.0.0 --port 4200 --proxy-config src/proxy.docker.conf.json"
+    ports:
+      - "4200:4200"
+    depends_on:
+      - authservice
+      - usermanagerapi

@@ -1,0 +1,12 @@
+{
+  "/auth": {
+    "target": "http://authservice:7008",
+    "secure": false,
+    "changeOrigin": true
+  },
+  "/api": {
+    "target": "http://usermanagerapi:7255",
+    "secure": false,
+    "changeOrigin": true
+  }
+}
