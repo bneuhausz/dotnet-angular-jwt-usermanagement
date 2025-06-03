@@ -60,6 +60,8 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseMiddleware<CorrelationIdMiddleware>();
+
 app.UseHttpLogging();
 
 app.UseAuthentication();
