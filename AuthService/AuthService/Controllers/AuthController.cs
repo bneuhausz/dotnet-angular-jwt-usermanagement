@@ -19,27 +19,42 @@ public class AuthController : ControllerBase
     private readonly AuthDbContext _db;
     private readonly IConfiguration _config;
     private readonly PasswordVerificationService _passwordVerificationService;
+    private readonly ILogger<AuthController> _logger;
 
     private static readonly JsonSerializerOptions CamelCaseJsonSerializerOptions = new JsonSerializerOptions
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public AuthController(AuthDbContext db, IConfiguration config, PasswordVerificationService passwordVerificationService)
+    public AuthController(AuthDbContext db, IConfiguration config,
+        PasswordVerificationService passwordVerificationService, ILogger<AuthController> logger)
     {
         _db = db;
         _config = config;
         _passwordVerificationService = passwordVerificationService;
+        _logger = logger;
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login(LoginDto dto)
     {
+        _logger.LogInformation("({user}) login attempt", dto.Email);
+
         var user = await _db.Users
             .FirstOrDefaultAsync(u => u.Email == dto.Email && !u.IsDeleted);
 
         if (user == null || !_passwordVerificationService.VerifyPassword(user.PasswordHash, dto.Password))
+        {
+            if (user == null)
+            {
+                _logger.LogInformation("({user}) not found", dto.Email);
+            }
+            else
+            {
+                _logger.LogInformation("({user}) password verification failed", dto.Email);
+            }
             return Unauthorized();
+        }
 
         var accessToken = await CreateAccessToken(user);
         var refreshToken = GenerateRefreshToken();
@@ -53,6 +68,8 @@ public class AuthController : ControllerBase
 
         _db.UserRefreshTokens.Add(refreshTokenEntity);
         await _db.SaveChangesAsync();
+
+        _logger.LogInformation("({user}) logged in", dto.Email);
 
         return Ok(new UserDto { AccessToken = accessToken, RefreshToken = refreshToken });
     }
