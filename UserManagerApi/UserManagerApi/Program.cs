@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using UserManagerApi.Data;
 using UserManagerApi.Services;
 using UserManagerApi.Middlewares;
 using Microsoft.AspNetCore.HttpLogging;
@@ -11,6 +10,8 @@ using Audit.EntityFramework;
 using Audit.Core;
 using System.Text.Json;
 using System.Diagnostics;
+using UserManagerApi.Data.Audit;
+using UserManagerApi.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,7 +80,7 @@ var auditDbOptions = new DbContextOptionsBuilder<AuditLogDbContext>()
 Audit.Core.Configuration.Setup().UseEntityFramework(ef => ef
     .UseDbContext<AuditLogDbContext>(auditDbOptions)
     .DisposeDbContext()
-    .AuditTypeNameMapper(typeName => "AuditLog")
+    .AuditTypeMapper(t => typeof(AuditLog))
     .AuditEntityAction<AuditLog>((auditEvent, eventEntry, auditLogEntity) =>
     {
         auditLogEntity.InsertedDate = DateTime.UtcNow;

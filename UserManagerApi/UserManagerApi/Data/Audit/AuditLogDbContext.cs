@@ -1,10 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 
-namespace UserManagerApi.Data;
+namespace UserManagerApi.Data.Audit;
 
 public class AuditLogDbContext : DbContext
 {
-    public AuditLogDbContext(DbContextOptions<AuditLogDbContext> options) : base(options) {}
+    public AuditLogDbContext(DbContextOptions<AuditLogDbContext> options) : base(options) { }
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 

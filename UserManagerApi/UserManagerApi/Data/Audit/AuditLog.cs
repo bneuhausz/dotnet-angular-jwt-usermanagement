@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.ComponentModel.DataAnnotations;
 
-namespace UserManagerApi.Data;
+namespace UserManagerApi.Data.Audit;
 
 public class AuditLog
 {
