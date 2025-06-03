@@ -5,8 +5,22 @@ using System.Text;
 using UserManagerApi.Data;
 using UserManagerApi.Services;
 using UserManagerApi.Middlewares;
+using Microsoft.AspNetCore.HttpLogging;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration)
+    .CreateLogger();
+
+builder.Host.UseSerilog();
+
+builder.Services.AddHttpLogging(logging =>
+{
+    logging.LoggingFields = HttpLoggingFields.All;
+    logging.MediaTypeOptions.AddText("application/json");
+});
 
 // Add services to the container.
 builder.Services.AddDbContext<UsersDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("UsersDb")));
@@ -45,6 +59,8 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+app.UseHttpLogging();
 
 app.UseAuthentication();
 
