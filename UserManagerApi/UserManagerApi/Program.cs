@@ -7,6 +7,10 @@ using UserManagerApi.Services;
 using UserManagerApi.Middlewares;
 using Microsoft.AspNetCore.HttpLogging;
 using Serilog;
+using Audit.EntityFramework;
+using Audit.Core;
+using System.Text.Json;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,12 +26,19 @@ builder.Services.AddHttpLogging(logging =>
     logging.MediaTypeOptions.AddText("application/json");
 });
 
-// Add services to the container.
-builder.Services.AddDbContext<UsersDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("UsersDb")));
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddDbContext<UsersDbContext>(options => options
+    .UseSqlServer(builder.Configuration.GetConnectionString("UsersDb"))
+    .AddInterceptors(new AuditSaveChangesInterceptor()));
+
+builder.Services.AddDbContext<AuditLogDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("UsersDb")));
 
 builder.Services.AddSingleton<IPasswordHasher<object>, PasswordHasher<object>>();
 builder.Services.AddSingleton<PasswordVerificationService>();
-builder.Services.AddScoped<CurrentUserService>();
+
 
 builder.Services.AddAuthentication("Bearer")
     .AddJwtBearer("Bearer", options =>
@@ -59,6 +70,72 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+var serviceProvider = app.Services;
+var auditDbOptions = new DbContextOptionsBuilder<AuditLogDbContext>()
+    .UseSqlServer(app.Configuration.GetConnectionString("UsersDb"))
+    .Options;
+
+Audit.Core.Configuration.Setup().UseEntityFramework(ef => ef
+    .UseDbContext<AuditLogDbContext>(auditDbOptions)
+    .DisposeDbContext()
+    .AuditTypeNameMapper(typeName => "AuditLog")
+    .AuditEntityAction<AuditLog>((auditEvent, eventEntry, auditLogEntity) =>
+    {
+        auditLogEntity.InsertedDate = DateTime.UtcNow;
+        auditLogEntity.EntityType = eventEntry.EntityType.Name;
+        auditLogEntity.TableName = eventEntry.Table;
+        auditLogEntity.PrimaryKey = JsonSerializer.Serialize(eventEntry.PrimaryKey);
+        auditLogEntity.Action = eventEntry.Action;
+
+        if (eventEntry.Action == "Insert" || eventEntry.Action == "Delete")
+        {
+            auditLogEntity.Changes = JsonSerializer.Serialize(eventEntry.ColumnValues);
+        }
+        else
+        {
+            auditLogEntity.Changes = JsonSerializer.Serialize(eventEntry.Changes);
+        }
+
+        if (auditEvent.CustomFields.TryGetValue("UserId", out var userIdObj) && userIdObj is int userIdVal)
+        {
+            auditLogEntity.UserId = userIdVal;
+        }
+
+        if (auditEvent.CustomFields.TryGetValue("TraceId", out var traceIdObj) && traceIdObj is string traceIdVal)
+        {
+            auditLogEntity.TraceId = traceIdVal;
+        }
+    })
+);
+
+Audit.Core.Configuration.AddCustomAction(ActionType.OnScopeCreated, scope =>
+{
+    var httpContextAccessor = app.Services.GetService<IHttpContextAccessor>();
+    var httpContext = httpContextAccessor?.HttpContext;
+
+    if (httpContext != null &&
+        httpContext.RequestServices.GetService<ICurrentUserService>() is ICurrentUserService currentUserService)
+    {
+        var userId = currentUserService.GetCurrentUserId();
+        scope.Event.CustomFields["UserId"] = userId;
+    }
+
+    if (httpContext?.Items.TryGetValue(CorrelationIdMiddleware.CorrelationIdItemName, out var correlationIdObj) == true &&
+        correlationIdObj is string corrIdStr &&
+        !string.IsNullOrWhiteSpace(corrIdStr))
+    {
+        scope.Event.CustomFields["TraceId"] = corrIdStr;
+    }
+    else if (httpContext != null && !string.IsNullOrEmpty(httpContext.TraceIdentifier))
+    {
+        scope.Event.CustomFields["TraceId"] = httpContext.TraceIdentifier;
+    }
+    else if (Activity.Current?.Id != null)
+    {
+        scope.Event.CustomFields["TraceId"] = Activity.Current.Id;
+    }
+});
 
 app.UseMiddleware<CorrelationIdMiddleware>();
 

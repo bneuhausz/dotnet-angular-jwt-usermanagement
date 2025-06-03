@@ -11,14 +11,14 @@ public class UserContextMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, CurrentUserService currentUserService)
+    public async Task InvokeAsync(HttpContext context, ICurrentUserService currentUserService)
     {
         if (context.User.Identity?.IsAuthenticated == true)
         {
             var subClaim = context.User.FindFirst("sub");
             if (subClaim != null && int.TryParse(subClaim.Value, out var userId))
             {
-                currentUserService.UserId = userId;
+                currentUserService.SetCurrentUserId(userId);
             }
         }
 

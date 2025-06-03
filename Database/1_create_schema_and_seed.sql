@@ -1,6 +1,3 @@
-CREATE DATABASE AuthDemo;
-GO
-
 USE AuthDemo;
 GO
 
@@ -199,4 +196,23 @@ CREATE TABLE UserRefreshTokens (
 GO
 
 CREATE INDEX IX_UserRefreshTokens_UserId ON UserRefreshTokens(UserId);
+GO
+
+CREATE TABLE AuditLogs (
+    AuditLogId BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    InsertedDate DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+    EntityType NVARCHAR(255) NULL,
+    [TableName] NVARCHAR(255) NULL,
+    PrimaryKey NVARCHAR(MAX) NULL,
+    Action NVARCHAR(50) NULL,
+    UserId INT NULL,
+    Changes NVARCHAR(MAX) NULL,
+    TraceId NVARCHAR(100) NULL,
+    TransactionId NVARCHAR(100) NULL
+);
+GO
+
+CREATE INDEX IX_AuditLogs_EntityType_PrimaryKey ON AuditLogs (EntityType, PrimaryKey);
+CREATE INDEX IX_AuditLogs_UserId ON AuditLogs (UserId);
+CREATE INDEX IX_AuditLogs_InsertedDate ON AuditLogs (InsertedDate);
 GO

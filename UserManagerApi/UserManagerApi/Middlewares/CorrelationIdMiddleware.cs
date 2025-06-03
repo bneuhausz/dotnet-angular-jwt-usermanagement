@@ -4,6 +4,8 @@ public class CorrelationIdMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<CorrelationIdMiddleware> _logger;
+    private const string CorrelationIdHeaderName = "X-Correlation-ID";
+    public const string CorrelationIdItemName = "CorrelationId";
 
     public CorrelationIdMiddleware(RequestDelegate next, ILogger<CorrelationIdMiddleware> logger)
     {
@@ -15,8 +17,10 @@ public class CorrelationIdMiddleware
     {
         var correlationId = Guid.NewGuid().ToString();
 
-        using (Serilog.Context.LogContext.PushProperty("CorrelationId", correlationId))
-        using (_logger.BeginScope(new Dictionary<string, object> { ["CorrelationId"] = correlationId }))
+        context.Items[CorrelationIdHeaderName] = correlationId;
+
+        using (Serilog.Context.LogContext.PushProperty(CorrelationIdItemName, correlationId))
+        using (_logger.BeginScope(new Dictionary<string, object> { [CorrelationIdItemName] = correlationId }))
         {
             await _next(context);
         }

@@ -5,9 +5,9 @@ namespace UserManagerApi.Data;
 
 public class UsersDbContext : DbContext
 {
-    private readonly CurrentUserService _currentUserService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public UsersDbContext(DbContextOptions<UsersDbContext> options, CurrentUserService currentUserService) : base(options)
+    public UsersDbContext(DbContextOptions<UsersDbContext> options, ICurrentUserService currentUserService) : base(options)
     {
         _currentUserService = currentUserService;
     }
@@ -135,7 +135,7 @@ public class UsersDbContext : DbContext
     {
         var now = DateTime.UtcNow;
 
-        var currentUserId = _currentUserService.UserId ?? throw new InvalidOperationException("User ID not set");
+        var currentUserId = _currentUserService.GetCurrentUserId() ?? throw new InvalidOperationException("User ID not set");
 
         foreach (var entry in ChangeTracker.Entries<AuditableEntity>())
         {
