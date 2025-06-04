@@ -9,6 +9,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 
 namespace AuthService.Controllers;
 
@@ -36,12 +37,12 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginDto dto)
+    public async Task<IActionResult> Login(LoginDto dto, CancellationToken cancellationToken)
     {
         _logger.LogInformation("({user}) login attempt", dto.Email);
 
         var user = await _db.Users
-            .FirstOrDefaultAsync(u => u.Email == dto.Email && !u.IsDeleted);
+            .FirstOrDefaultAsync(u => u.Email == dto.Email && !u.IsDeleted, cancellationToken);
 
         if (user == null || !_passwordVerificationService.VerifyPassword(user.PasswordHash, dto.Password))
         {
@@ -56,7 +57,7 @@ public class AuthController : ControllerBase
             return Unauthorized();
         }
 
-        var accessToken = await CreateAccessToken(user);
+        var accessToken = await CreateAccessToken(user, cancellationToken);
         var refreshToken = GenerateRefreshToken();
 
         var refreshTokenEntity = new UserRefreshToken
@@ -67,7 +68,7 @@ public class AuthController : ControllerBase
         };
 
         _db.UserRefreshTokens.Add(refreshTokenEntity);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         _logger.LogInformation("({user}) logged in", dto.Email);
 
@@ -75,11 +76,11 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("refresh")]
-    public async Task<IActionResult> Refresh(RefreshTokenDto dto)
+    public async Task<IActionResult> Refresh(RefreshTokenDto dto, CancellationToken cancellationToken)
     {
         var refreshTokenEntity = await _db.UserRefreshTokens
             .Include(rt => rt.User)
-            .FirstOrDefaultAsync(rt => rt.Token == dto.RefreshToken);
+            .FirstOrDefaultAsync(rt => rt.Token == dto.RefreshToken, cancellationToken);
 
         if (refreshTokenEntity == null || !refreshTokenEntity.IsActive)
             return Unauthorized("Invalid or expired refresh token.");
@@ -97,10 +98,10 @@ public class AuthController : ControllerBase
         };
 
         _db.UserRefreshTokens.Add(newRefreshTokenEntity);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         var user = refreshTokenEntity.User;
-        var accessToken = await CreateAccessToken(user);
+        var accessToken = await CreateAccessToken(user, cancellationToken);
 
         return Ok(new UserDto
         {
@@ -110,16 +111,16 @@ public class AuthController : ControllerBase
     }
 
     [HttpPost("revoke")]
-    public async Task<IActionResult> Revoke(RefreshTokenDto dto)
+    public async Task<IActionResult> Revoke(RefreshTokenDto dto, CancellationToken cancellationToken)
     {
         var refreshTokenEntity = await _db.UserRefreshTokens
-            .FirstOrDefaultAsync(rt => rt.Token == dto.RefreshToken);
+            .FirstOrDefaultAsync(rt => rt.Token == dto.RefreshToken, cancellationToken);
 
         if (refreshTokenEntity == null || !refreshTokenEntity.IsActive)
             return NotFound("Token not found or already revoked.");
 
         refreshTokenEntity.RevokedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         return NoContent();
     }
@@ -158,21 +159,20 @@ public class AuthController : ControllerBase
                 parentDto.SubMenus.Add(menuDict[item.Id]);
             }
         }
-
         return menus;
     }
 
-    private async Task<string> CreateAccessToken(User user)
+    private async Task<string> CreateAccessToken(User user, CancellationToken cancellationToken)
     {
         var userRoles = await _db.UserRoles
             .Where(ur => ur.UserId == user.Id)
             .Select(ur => ur.RoleId)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var permissions = await _db.RolePermissions
             .Where(rp => userRoles.Contains(rp.RoleId))
             .Select(rp => rp.Permission)
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         var permissionNames = permissions
             .Select(p => p.Name)
