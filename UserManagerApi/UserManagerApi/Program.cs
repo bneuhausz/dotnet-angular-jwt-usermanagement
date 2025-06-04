@@ -12,6 +12,7 @@ using System.Text.Json;
 using System.Diagnostics;
 using UserManagerApi.Data.Audit;
 using UserManagerApi.Data;
+using UserManagerApi.BackgroundServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,6 +60,8 @@ builder.Services.AddAuthentication("Bearer")
     });
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddHostedService<AuditLogCleanupService>();
 
 builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
