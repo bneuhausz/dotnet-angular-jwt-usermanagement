@@ -17,7 +17,7 @@ public class RolesController : MaintenanceController
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var users = await _db.Roles
             .Select(u => new RoleDto
@@ -27,13 +27,13 @@ public class RolesController : MaintenanceController
                 IsDeleted = u.IsDeleted,
             })
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         return Ok(users);
     }
 
     [HttpPost]
     [CheckPermissions("MaintainRoles")]
-    public async Task<IActionResult> CreateRole(CreateRoleDto createRoleDto)
+    public async Task<IActionResult> CreateRole(CreateRoleDto createRoleDto, CancellationToken cancellationToken)
     {
 
         var role = new Role
@@ -42,28 +42,28 @@ public class RolesController : MaintenanceController
         };
 
         _db.Roles.Add(role);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         return Created();
     }
 
     [HttpPut("{roleId:int}/toggledeleted")]
     [CheckPermissions("MaintainRoles")]
-    public async Task<IActionResult> ToggleDeleted(int roleId)
+    public async Task<IActionResult> ToggleDeleted(int roleId, CancellationToken cancellationToken)
     {
-        var role = await _db.Roles.FindAsync(roleId);
+        var role = await _db.Roles.FindAsync(roleId, cancellationToken);
 
         if (role == null) return NotFound();
 
         role.IsDeleted = !role.IsDeleted;
         _db.Roles.Update(role);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         return NoContent();
     }
 
     [HttpGet("{roleId:int}/permissions")]
-    public async Task<IActionResult> GetPermissionsByRoleId(int roleId)
+    public async Task<IActionResult> GetPermissionsByRoleId(int roleId, CancellationToken cancellationToken)
     {
         var userRoles = await _db.Permissions
             .Select(p => new RolePermissionDto
@@ -75,17 +75,17 @@ public class RolesController : MaintenanceController
                     .Any(rp => rp.RoleId == roleId && rp.PermissionId == p.Id)
             })
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return Ok(userRoles);
     }
 
     [HttpPut("{roleId:int}/togglepermission/{permissionId:int}")]
     [CheckPermissions("MaintainRoles")]
-    public async Task<IActionResult> TogglePermission(int roleId, int permissionId)
+    public async Task<IActionResult> TogglePermission(int roleId, int permissionId, CancellationToken cancellationToken)
     {
         var rolePermission = await _db.RolePermissions
-            .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId);
+            .FirstOrDefaultAsync(rp => rp.RoleId == roleId && rp.PermissionId == permissionId, cancellationToken);
 
         if (rolePermission == null)
         {
@@ -100,7 +100,7 @@ public class RolesController : MaintenanceController
         {
             _db.RolePermissions.Remove(rolePermission);
         }
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         return NoContent();
     }

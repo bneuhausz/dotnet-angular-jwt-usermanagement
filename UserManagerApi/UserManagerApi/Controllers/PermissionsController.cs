@@ -17,7 +17,7 @@ public class PermissionsController : MaintenanceController
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var permissions = await _db.Permissions
             .Select(p => new PermissionDto
@@ -28,7 +28,7 @@ public class PermissionsController : MaintenanceController
                 ParentPermissionId = p.ParentPermissionId
             })
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return Ok(permissions);
     }

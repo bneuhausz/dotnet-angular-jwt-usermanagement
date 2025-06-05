@@ -20,7 +20,7 @@ public class UsersController : MaintenanceController
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var users = await _db.Users
             .Select(u => new UserDto
@@ -31,14 +31,14 @@ public class UsersController : MaintenanceController
                 IsDeleted = u.IsDeleted,
             })
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
         return Ok(users);
     }
 
     [HttpGet("{userId:int}")]
-    public async Task<IActionResult> Get(int userId)
+    public async Task<IActionResult> Get(int userId, CancellationToken cancellationToken)
     {
-        var user = await _db.Users.FindAsync(userId);
+        var user = await _db.Users.FindAsync(userId, cancellationToken);
 
         if (user == null) return NotFound();
 
@@ -51,7 +51,7 @@ public class UsersController : MaintenanceController
     }
 
     [HttpGet("{userId:int}/roles")]
-    public async Task<IActionResult> GetRolesByUserId(int userId)
+    public async Task<IActionResult> GetRolesByUserId(int userId, CancellationToken cancellationToken)
     {
         var userRoles = await _db.Roles
             .Where(r => !r.IsDeleted)
@@ -63,14 +63,14 @@ public class UsersController : MaintenanceController
                     .Any(ur => ur.UserId == userId && ur.RoleId == r.Id)
             })
             .AsNoTracking()
-            .ToListAsync();
+            .ToListAsync(cancellationToken);
 
         return Ok(userRoles);
     }
 
     [HttpPost]
     [CheckPermissions("MaintainUsers")]
-    public async Task<IActionResult> CreateUser(CreateUserDto createUserDto)
+    public async Task<IActionResult> CreateUser(CreateUserDto createUserDto, CancellationToken cancellationToken)
     {
         var user = new User
         {
@@ -80,16 +80,16 @@ public class UsersController : MaintenanceController
         };
 
         _db.Users.Add(user);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         return Created();
     }
 
     [HttpPatch("{userId:int}")]
     [CheckPermissions("MaintainUsers")]
-    public async Task<IActionResult> UpdateUser(int userId, [FromBody] PatchUserDto patchUserDto)
+    public async Task<IActionResult> UpdateUser(int userId, [FromBody] PatchUserDto patchUserDto, CancellationToken cancellationToken)
     {
-        var user = await _db.Users.FindAsync(userId);
+        var user = await _db.Users.FindAsync(userId, cancellationToken);
 
         if (user == null) return NotFound();
 
@@ -103,32 +103,32 @@ public class UsersController : MaintenanceController
             user.PasswordHash = _passwordVerificationService.HashPassword(patchUserDto.Password);
 
         _db.Users.Update(user);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         return NoContent();
     }
 
     [HttpPut("{userId:int}/toggledeleted")]
     [CheckPermissions("MaintainUsers")]
-    public async Task<IActionResult> ToggleDeleted(int userId)
+    public async Task<IActionResult> ToggleDeleted(int userId, CancellationToken cancellationToken)
     {
-        var user = await _db.Users.FindAsync(userId);
+        var user = await _db.Users.FindAsync(userId, cancellationToken);
 
         if (user == null) return NotFound();
 
         user.IsDeleted = !user.IsDeleted;
         _db.Users.Update(user);
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(cancellationToken);
 
         return NoContent();
     }
 
     [HttpPut("{userId:int}/togglerole/{roleId:int}")]
     [CheckPermissions("MaintainUsers")]
-    public async Task<IActionResult> ToggleRole(int userId, int roleId)
+    public async Task<IActionResult> ToggleRole(int userId, int roleId, CancellationToken cancellationToken)
     {
-        var userRole = _db.UserRoles
-            .FirstOrDefault(ur => ur.UserId == userId && ur.RoleId == roleId);
+        var userRole = await _db.UserRoles
+            .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId, cancellationToken);
 
         if (userRole == null)
         {
@@ -137,12 +137,12 @@ public class UsersController : MaintenanceController
                 UserId = userId,
                 RoleId = roleId,
             });
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
         }
         else
         {
             _db.UserRoles.Remove(userRole);
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(cancellationToken);
         }
 
         return NoContent();
