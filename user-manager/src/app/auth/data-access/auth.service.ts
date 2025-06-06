@@ -6,6 +6,7 @@ import { LoginRequest } from "../interfaces/requests/login.request";
 import { LoginResponse } from "../interfaces/responses/login.response";
 import { LoggedInUser } from "../interfaces/logged-in-user";
 import { Router } from "@angular/router";
+import { clearUserFromSessionStorage, getUserFromSessionStorage, setUserInSessionStorage } from "../utils/user-session-storage.utils";
 
 type AuthState = {
   user?: LoggedInUser;
@@ -43,6 +44,7 @@ export class AuthService {
       tap((res) => {
         const user = mapJwtToUser(res.accessToken, res.refreshToken);
         this.#state.update((state) => ({ ...state, isLoading: false, user }));
+        setUserInSessionStorage(user);
         this.scheduleRefresh(user.expiresAt);
         this.#router.navigate(['/']);
       })
@@ -55,6 +57,7 @@ export class AuthService {
       tap((res) => {
         const user = mapJwtToUser(res.accessToken, res.refreshToken);
         this.#state.update((state) => ({ ...state, user }));
+        setUserInSessionStorage(user);
         this.scheduleRefresh(user.expiresAt);
       })
     );
@@ -69,18 +72,25 @@ export class AuthService {
       )
       .subscribe(() => {
         this.clearRefreshTimer();
+        clearUserFromSessionStorage();
         this.#state.update((state) => ({ ...state, user: undefined }));
         this.#router.navigate(['/login']);
       });
+
+    this.setUserFromSession();
   }
 
   private scheduleRefresh(expiresAt: Date) {
     this.clearRefreshTimer();
-    const delay = expiresAt.getTime() - 60_000 - Date.now();
+    const now = Date.now();
+    const refreshTime = expiresAt.getTime() - 60_000;
+    const delay = refreshTime - now;
+
     if (delay > 0) {
       this.refreshTimerSub = timer(delay).subscribe(() => this.refresh$.next());
-    }
-    else {
+    } else if (expiresAt.getTime() > now) {
+      timer(0).subscribe(() => this.refresh$.next());
+  } else {
       this.logout$.next();
     }
   }
@@ -88,5 +98,19 @@ export class AuthService {
   private clearRefreshTimer() {
     this.refreshTimerSub?.unsubscribe();
     this.refreshTimerSub = undefined;
+  }
+
+  private setUserFromSession() {
+    const user = getUserFromSessionStorage();
+    if (user) {
+      const expiresAt = new Date(user.expiresAt);
+      if (expiresAt > new Date()) {
+        user.expiresAt = expiresAt;
+        this.#state.update((state) => ({ ...state, user }));
+        this.scheduleRefresh(expiresAt);
+      } else {
+        clearUserFromSessionStorage();
+      }
+    }
   }
 }
