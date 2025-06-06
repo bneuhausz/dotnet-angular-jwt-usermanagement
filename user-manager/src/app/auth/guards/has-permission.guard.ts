@@ -7,10 +7,8 @@ export const hasPermissionGuard = (requiredPermission: string): CanActivateFn =>
     const authService = inject(AuthService);
     const router = inject(Router);
 
-    if (authService.user()?.permissions.includes(requiredPermission)) {
-      return true;
-    }
-
-    return router.parseUrl('/unauthorized');
+    return authService.user()?.permissions.includes(requiredPermission)
+      ? true
+      : router.createUrlTree(['/unauthorized']);
   };
 };
