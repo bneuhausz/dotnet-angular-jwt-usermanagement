@@ -6,14 +6,6 @@ import { LayoutComponent } from './shared/ui/layout.component';
   selector: 'app-root',
   imports: [LayoutComponent],
   template: `
-    <!-- <h1>Welcome!</h1>
-    <button (click)="authService.login$.next(user)">Login</button>
-
-    <p>
-      {{ authService.isAuthenticated() ? 'You are logged in' : 'You are not logged in' }}
-    </p>
-
-    <router-outlet /> -->
     <app-layout />
   `,
   styles: [],

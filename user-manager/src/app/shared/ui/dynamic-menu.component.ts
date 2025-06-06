@@ -8,11 +8,6 @@ import { MatButtonModule } from '@angular/material/button';
 import { Menu } from '../../auth/interfaces/menu';
 import { MatSidenav } from '@angular/material/sidenav';
 
-export interface MenuItem {
-  Name: string;
-  SubMenus: MenuItem[];
-}
-
 @Component({
   selector: 'app-dynamic-menu',
   standalone: true,
@@ -33,11 +28,11 @@ export interface MenuItem {
         </a>
 
         <mat-menu #menuRef="matMenu" [overlapTrigger]="false" style="width: 200px;">
-          <app-dynamic-menu [menus]="menu.subMenus" [sidenav]="sidenav()" />
+          <app-dynamic-menu [menus]="menu.subMenus" [sidenav]="sidenav()" [parentPath]="buildPath(parentPath(), menu.name)" />
         </mat-menu>
       }
       @else {
-        <a mat-list-item [routerLink]="getRouterLink(menu.name)" (click)="sidenav().close()">
+        <a mat-list-item [routerLink]="buildPath(parentPath(), menu.name)" (click)="sidenav().close()">
           <mat-icon matListItemIcon>person_add</mat-icon>
           <span>{{ menu.name }}</span>
         </a>
@@ -48,8 +43,14 @@ export interface MenuItem {
 export class DynamicMenuComponent {
   menus = input.required<Menu[]>();
   sidenav = input.required<MatSidenav>();
+  parentPath = input<string>('');
 
-  getRouterLink(name: string): string {
+  toKebab(name: string): string {
     return name.toLowerCase().replace(/\s+/g, '-');
+  }
+
+  buildPath(parent: string, name: string): string {
+    const current = this.toKebab(name);
+    return parent ? `${parent}/${current}` : `/${current}`;
   }
 }
