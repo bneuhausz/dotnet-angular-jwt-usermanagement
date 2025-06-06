@@ -7,6 +7,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatButtonModule } from '@angular/material/button';
 import { Menu } from '../../auth/interfaces/menu';
 import { MatSidenav } from '@angular/material/sidenav';
+import { toKebab } from '../utils/string.utils';
 
 @Component({
   selector: 'app-dynamic-menu',
@@ -45,12 +46,8 @@ export class DynamicMenuComponent {
   sidenav = input.required<MatSidenav>();
   parentPath = input<string>('');
 
-  toKebab(name: string): string {
-    return name.toLowerCase().replace(/\s+/g, '-');
-  }
-
   buildPath(parent: string, name: string): string {
-    const current = this.toKebab(name);
+    const current = toKebab(name);
     return parent ? `${parent}/${current}` : `/${current}`;
   }
 }
