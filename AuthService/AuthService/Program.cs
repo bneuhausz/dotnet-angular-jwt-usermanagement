@@ -1,4 +1,5 @@
 using AuthService.BackgroundServices;
+using AuthService.Config;
 using AuthService.Data;
 using AuthService.Services;
 using Microsoft.AspNetCore.Identity;
@@ -15,6 +16,8 @@ builder.Host.UseSerilog();
 
 // Add services to the container.
 builder.Services.AddDbContext<AuthDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("AuthDb")));
+
+builder.Services.AddOptions<JwtOptions>().BindConfiguration(JwtOptions.Section);
 
 builder.Services.AddSingleton<IPasswordHasher<object>, PasswordHasher<object>>();
 builder.Services.AddSingleton<PasswordVerificationService>();

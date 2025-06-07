@@ -1,8 +1,10 @@
-﻿using AuthService.Data;
+﻿using AuthService.Config;
+using AuthService.Data;
 using AuthService.Dtos;
 using AuthService.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -18,7 +20,7 @@ namespace AuthService.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AuthDbContext _db;
-    private readonly IConfiguration _config;
+    private readonly JwtOptions _jwtOptions;
     private readonly PasswordVerificationService _passwordVerificationService;
     private readonly ILogger<AuthController> _logger;
 
@@ -27,11 +29,11 @@ public class AuthController : ControllerBase
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase
     };
 
-    public AuthController(AuthDbContext db, IConfiguration config,
+    public AuthController(AuthDbContext db, IOptionsSnapshot<JwtOptions> jwtOptionsSnapshot,
         PasswordVerificationService passwordVerificationService, ILogger<AuthController> logger)
     {
         _db = db;
-        _config = config;
+        _jwtOptions = jwtOptionsSnapshot.Value;
         _passwordVerificationService = passwordVerificationService;
         _logger = logger;
     }
@@ -64,7 +66,7 @@ public class AuthController : ControllerBase
         {
             UserId = user.Id,
             Token = refreshToken,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:RefreshTokenExpirationMinutes"]!))
+            ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtOptions.RefreshTokenExpirationMinutes),
         };
 
         _db.UserRefreshTokens.Add(refreshTokenEntity);
@@ -92,9 +94,9 @@ public class AuthController : ControllerBase
         {
             UserId = refreshTokenEntity.UserId,
             Token = newRefreshToken,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:RefreshTokenExpirationMinutes"]!)),
+            ExpiresAt = DateTime.UtcNow.AddMinutes(_jwtOptions.RefreshTokenExpirationMinutes),
             CreatedAt = DateTime.UtcNow,
-            ReplacedByToken = newRefreshToken
+            ReplacedByToken = newRefreshToken,
         };
 
         _db.UserRefreshTokens.Add(newRefreshTokenEntity);
@@ -181,14 +183,13 @@ public class AuthController : ControllerBase
 
         var menus = CreateMenuTree(permissions);
 
-        //TODO: implement options pattern and handle config better
-        var secret = Encoding.UTF8.GetBytes(_config["Jwt:Secret"]!);
+        var secret = Encoding.UTF8.GetBytes(_jwtOptions.Secret);
 
         var token = new JwtSecurityToken(
             claims: CreateClaims(user, permissionNames, menus),
-            expires: DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:AccessTokenExpirationMinutes"]!)),
-            issuer: _config["Jwt:Issuer"]!,
-            audience: _config["Jwt:Audience"]!,
+            expires: DateTime.UtcNow.AddMinutes(_jwtOptions.AccessTokenExpirationMinutes),
+            issuer: _jwtOptions.Issuer,
+            audience: _jwtOptions.Audience,
             signingCredentials: new SigningCredentials(
                 new SymmetricSecurityKey(secret),
                 SecurityAlgorithms.HmacSha256)
